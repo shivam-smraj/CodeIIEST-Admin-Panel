@@ -1,14 +1,3 @@
-/**
- * auth.ts — Full NextAuth configuration for Node.js runtime.
- *
- * Extends authConfig (Edge-safe base) with providers that use
- * Node.js APIs (mongoose, bcryptjs). Used ONLY in:
- *   - Server Components (await auth())
- *   - API Routes        (handlers)
- *   - Server Actions    (signIn, signOut)
- *
- * Never imported by middleware.ts.
- */
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
@@ -16,10 +5,11 @@ import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import type { UserRole } from "@/models/User";
-import { authConfig } from "@/auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  ...authConfig,
+  // Required for Vercel / any reverse proxy — trusts x-forwarded-host header
+  trustHost: true,
+  secret: process.env.AUTH_SECRET,
 
   providers: [
     Google({
@@ -35,11 +25,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+
         try {
           await connectDB();
           const user = await User.findOne({
             email: (credentials.email as string).toLowerCase(),
           });
+
           if (!user || !user.passwordHash) return null;
 
           const isValid = await bcrypt.compare(
@@ -56,8 +48,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             role:  user.role,
           };
         } catch (err) {
-          // Log so it appears in Vercel function logs for debugging
-          console.error("[authorize] DB error:", err);
+          console.error("[authorize] error:", err);
           return null;
         }
       },
@@ -65,10 +56,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
 
   callbacks: {
-    // NOTE: do NOT spread authConfig.callbacks here.
-    // The `authorized` callback is for the Edge middleware only.
-    // Including it in the full Node.js config can interfere with sign-in.
-
     async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
         await connectDB();
@@ -80,8 +67,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (existingUser) {
           if (!existingUser.googleId) {
             existingUser.googleId = profile?.sub ?? undefined;
-            existingUser.image    = typeof profile?.picture === "string"
-              ? profile.picture : undefined;
+            existingUser.image    = typeof profile?.picture === "string" ? profile.picture : undefined;
             await existingUser.save();
           }
           user.id   = existingUser._id.toString();
@@ -89,7 +75,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         } else {
           const isSuperAdmin =
             process.env.INITIAL_SUPERADMIN_EMAIL?.toLowerCase() === email.toLowerCase();
-
           const newUser = await User.create({
             googleId:        profile?.sub ?? undefined,
             email,
@@ -106,7 +91,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async jwt({ token, user }) {
-      // Only runs on initial sign-in — persists id and role into the JWT
       if (user) {
         token.id   = user.id ?? "";
         token.role = (user as { role?: UserRole }).role ?? "user";
@@ -121,6 +105,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return session;
     },
+  },
+
+  pages: {
+    signIn: "/login",
+    error:  "/login",
   },
 
   session: { strategy: "jwt" },
