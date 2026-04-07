@@ -32,13 +32,15 @@ export default function LoginPage() {
         toast.error("Invalid email or password.");
       } else {
         toast.success("Logged in successfully!");
-        router.push("/dashboard");
-        router.refresh();
+        // Use hard redirect so the browser sends the new session cookie
+        // on the very next request — router.push() can race the cookie sync on Vercel
+        window.location.href = "/dashboard";
       }
     } finally {
       setLoading(false);
     }
   }
+
 
   async function handleGoogleLogin() {
     setGoogleLoading(true);

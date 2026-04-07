@@ -7,6 +7,7 @@ import { User } from "@/models/User";
 import type { UserRole } from "@/models/User";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true, // Required for Vercel/reverse-proxy deployments
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID!,
@@ -119,6 +120,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
 
   session: { strategy: "jwt" },
+
+  // Required on Vercel — cookies must be set with correct domain
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === "production"
+        ? "__Secure-next-auth.session-token"
+        : "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
 });
 
 export function isCollegeEmail(email: string): boolean {
