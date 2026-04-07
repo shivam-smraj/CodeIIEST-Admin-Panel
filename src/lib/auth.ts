@@ -7,10 +7,18 @@ import { User } from "@/models/User";
 import type { UserRole } from "@/models/User";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  trustHost: true, // Required for Vercel/reverse-proxy deployments
+  /**
+   * trustHost: true is REQUIRED on Vercel and any reverse proxy.
+   * Without it NextAuth rejects the x-forwarded-host header and
+   * refuses to set / read session cookies.
+   */
+  trustHost: true,
+
+  secret: process.env.AUTH_SECRET,
+
   providers: [
     Google({
-      clientId: process.env.AUTH_GOOGLE_ID!,
+      clientId:     process.env.AUTH_GOOGLE_ID!,
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
     }),
 
@@ -40,7 +48,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id:    user._id.toString(),
           email: user.email,
           name:  user.displayName,
-          image: user.image,
+          image: user.image ?? null,
           role:  user.role,
         };
       },
@@ -49,27 +57,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
   callbacks: {
     async signIn({ user, account, profile }) {
-      // Google OAuth sign-in: find or create user
       if (account?.provider === "google") {
         await connectDB();
         const email = profile?.email as string | undefined;
-
         if (!email) return false;
-        // Only allow college email domains
         if (!isCollegeEmail(email)) return false;
 
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-          // Link googleId if not already linked
           if (!existingUser.googleId) {
             existingUser.googleId = profile?.sub ?? undefined;
-            existingUser.image = typeof profile?.picture === "string" ? profile.picture : undefined;
+            existingUser.image    = typeof profile?.picture === "string" ? profile.picture : undefined;
             await existingUser.save();
           }
           user.id   = existingUser._id.toString();
           user.role = existingUser.role;
         } else {
-          // Create new user from Google profile
           const isSuperAdmin =
             process.env.INITIAL_SUPERADMIN_EMAIL?.toLowerCase() === email.toLowerCase();
 
@@ -89,25 +92,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async jwt({ token, user }) {
+      // Only runs when user first signs in — set id and role into token
       if (user) {
         token.id   = user.id ?? "";
         token.role = (user as { role?: UserRole }).role ?? "user";
       }
-      // Refresh role from DB on token refresh (handles promotions taking effect)
-      if (token.id && !user) {
-        await connectDB();
-        const dbUser = await User.findById(token.id).select("role displayName").lean();
-        if (dbUser) {
-          token.role = dbUser.role;
-          token.name = dbUser.displayName;
-        }
-      }
       return token;
+      // NOTE: We deliberately do NOT hit MongoDB here on every request.
+      // Role changes take effect after the user's next login.
+      // This avoids Edge runtime DB calls on every middleware invocation.
     },
 
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id   = token.id as string;
+        session.user.id   = token.id   as string;
         session.user.role = token.role as UserRole;
       }
       return session;
@@ -115,26 +113,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
 
   pages: {
-    signIn:  "/login",
-    error:   "/login",
+    signIn: "/login",
+    error:  "/login",
   },
 
   session: { strategy: "jwt" },
 
-  // Required on Vercel — cookies must be set with correct domain
-  cookies: {
-    sessionToken: {
-      name: process.env.NODE_ENV === "production"
-        ? "__Secure-next-auth.session-token"
-        : "next-auth.session-token",
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-      },
-    },
-  },
+  // DO NOT add a custom `cookies` block — let NextAuth v5 manage cookie
+  // naming automatically. Overriding it causes name mismatches between
+  // sign-in (which uses the v5 default "authjs.session-token") and the
+  // middleware (which uses whatever name you specify here).
 });
 
 export function isCollegeEmail(email: string): boolean {
