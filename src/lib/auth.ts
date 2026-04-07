@@ -1,3 +1,14 @@
+/**
+ * auth.ts — Full NextAuth configuration for Node.js runtime.
+ *
+ * Extends authConfig (Edge-safe base) with providers that use
+ * Node.js APIs (mongoose, bcryptjs). Used ONLY in:
+ *   - Server Components (await auth())
+ *   - API Routes        (handlers)
+ *   - Server Actions    (signIn, signOut)
+ *
+ * Never imported by middleware.ts.
+ */
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
@@ -5,16 +16,10 @@ import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import type { UserRole } from "@/models/User";
+import { authConfig } from "@/auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  /**
-   * trustHost: true is REQUIRED on Vercel and any reverse proxy.
-   * Without it NextAuth rejects the x-forwarded-host header and
-   * refuses to set / read session cookies.
-   */
-  trustHost: true,
-
-  secret: process.env.AUTH_SECRET,
+  ...authConfig,
 
   providers: [
     Google({
@@ -56,6 +61,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
 
   callbacks: {
+    // Inherit the Edge-safe `authorized` callback from authConfig.
+    // Add the Node.js-only callbacks below.
+    ...authConfig.callbacks,
+
     async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
         await connectDB();
@@ -67,7 +76,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (existingUser) {
           if (!existingUser.googleId) {
             existingUser.googleId = profile?.sub ?? undefined;
-            existingUser.image    = typeof profile?.picture === "string" ? profile.picture : undefined;
+            existingUser.image    = typeof profile?.picture === "string"
+              ? profile.picture : undefined;
             await existingUser.save();
           }
           user.id   = existingUser._id.toString();
@@ -92,15 +102,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async jwt({ token, user }) {
-      // Only runs when user first signs in — set id and role into token
+      // Only runs on initial sign-in — persists id and role into the JWT
       if (user) {
         token.id   = user.id ?? "";
         token.role = (user as { role?: UserRole }).role ?? "user";
       }
       return token;
-      // NOTE: We deliberately do NOT hit MongoDB here on every request.
-      // Role changes take effect after the user's next login.
-      // This avoids Edge runtime DB calls on every middleware invocation.
     },
 
     async session({ session, token }) {
@@ -112,17 +119,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
 
-  pages: {
-    signIn: "/login",
-    error:  "/login",
-  },
-
   session: { strategy: "jwt" },
-
-  // DO NOT add a custom `cookies` block — let NextAuth v5 manage cookie
-  // naming automatically. Overriding it causes name mismatches between
-  // sign-in (which uses the v5 default "authjs.session-token") and the
-  // middleware (which uses whatever name you specify here).
 });
 
 export function isCollegeEmail(email: string): boolean {

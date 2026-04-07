@@ -1,37 +1,20 @@
 /**
- * Next.js Edge Middleware — Route Protection
+ * middleware.ts — Edge Runtime route protection.
  *
- * Uses the canonical NextAuth v5 pattern: `auth` is called as a middleware
- * wrapper so it reads the SAME session cookie it writes during sign-in.
- * Any other import pattern (e.g. importing from "next-auth/middleware")
- * risks cookie name / secret mismatches.
+ * ONLY imports from auth.config (Edge-safe, no Node.js).
+ * Uses a separate NextAuth instance that knows nothing about
+ * mongoose/bcrypt — it only verifies the JWT from the session cookie.
+ * JWT signing key = AUTH_SECRET environment variable (same as auth.ts).
  */
-import { auth } from "@/lib/auth";
-import { NextResponse } from "next/server";
+import NextAuth from "next-auth";
+import { authConfig } from "./auth.config";
 
-const PROTECTED = ["/dashboard", "/profile", "/settings", "/cf-verify", "/admin", "/superadmin"];
-const AUTH_ONLY = ["/login", "/register", "/forgot-password"];
-
-// auth() wraps our handler and injects req.auth (Session | null)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default auth(function middleware(req: any) {
-  const { pathname } = req.nextUrl;
-  const isLoggedIn   = !!req.auth;
-
-  // Already logged in → bounce away from auth pages
-  if (isLoggedIn && AUTH_ONLY.some(r => pathname.startsWith(r))) {
-    return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
-  }
-
-  // Not logged in → redirect to login
-  if (!isLoggedIn && PROTECTED.some(p => pathname.startsWith(p))) {
-    return NextResponse.redirect(new URL("/login", req.nextUrl));
-  }
-
-  return NextResponse.next();
-});
+export const { auth: middleware } = NextAuth(authConfig);
+export default middleware;
 
 export const config = {
-  // Run on all routes except Next.js internals and the auth API itself
-  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|api/auth|api/public).*)"],
+  matcher: [
+    // Run on every route EXCEPT Next.js internals and the auth/public APIs
+    "/((?!_next/static|_next/image|favicon\\.ico|api/auth|api/public).*)",
+  ],
 };
