@@ -1,0 +1,168 @@
+[
+    {
+        "title": "Fresher's Contest 2.0", 
+        "miniTitle": "Competitive Programming Event",
+        "description": "Gear up with your laptops and get ready for the second edition of Fresher's Contest presented by CodeIIEST. Whether you conquered the first edition or are just stepping into CP, this contest is for YOU! Step into the limelight, capture the beauty of coding and most importantly have fun racking your brains!",
+        "imageVariant": "cpdsa",
+        "AvatarSampleData": [
+            { "name": "Suraj Kashyap", "img": "surajkashyap.webp" },
+            { "name": "Mohak Singh", "img": "mohaksingh.webp" },
+            { "name": "Samyajit Das", "img": "samyajitdas.webp" }
+        ],
+        "TagsList": ["CP", "DSA", "Programming", "Codeforces"],
+        "sideDetails1": {
+            "text1": "Starts",
+            "text2": "10th Feb, 2025",
+            "text3": "5:00 pm"
+        },
+        "sideDetails2": {
+            "text1": "venue",
+            "text2": "CSD205",
+            "text3": null
+        },
+        "completionStatus": 100,
+        "moreInfo": "#"
+    },
+    {
+        "title": "Fresher's Contest", 
+        "miniTitle": "Competitive Programming Event",
+        "description": "Calling All Freshers! Ready to Challenge Yourself? Get a taste of the competitive programming world with an exciting contest! Whether you're a seasoned coder or just starting, this is the perfect chance to test your skills and learn.",
+        "imageVariant": "cpdsa",
+        "AvatarSampleData": [
+            { "name": "Suraj Kashyap", "img": "surajkashyap.webp" },
+            { "name": "Mohak Singh", "img": "mohaksingh.webp" },
+            { "name": "Samyajit Das", "img": "samyajitdas.webp" }
+        ],
+        "TagsList": ["CP", "DSA", "Programming", "Codeforces"],
+        "sideDetails1": {
+            "text1": "Starts",
+            "text2": "17th Dec, 2024",
+            "text3": "7:00 pm"
+        },
+        "sideDetails2": {
+            "text1": "venue",
+            "text2": "Online",
+            "text3": null
+        },
+        "completionStatus": 100,
+        "moreInfo": "https://codeforces.com/group/Bm2GlT8MYu/blog/entry/14914"
+    },
+    {
+        "title": "Winter of Open Source", 
+        "miniTitle": "Opensource contribution",
+        "description": "Are you ready to code, collaborate, and create? This December, dive into the Winter of Open Source, our 2-month long open-source contribution event!",
+        "imageVariant": "development",
+        "AvatarSampleData": [
+            { "name": "Abhijit Karmakar", "img": "abhijitkarmakar.webp" },
+            { "name": "Soumyajit Karmakar", "img": "soumyajitkarmakar.webp" }
+        ],
+        "TagsList": ["opensource", "git", "github", "contribution"],
+        "sideDetails1": {
+            "text1": "Duration",
+            "text2": "12th Dec, 2024 to",
+            "text3": "31st Jan, 2025"
+        },
+        "sideDetails2": {
+            "text1": "venue",
+            "text2": "Online",
+            "text3": null
+        },
+        "completionStatus": 100,
+        "moreInfo": "https://winterofopensource.super.site/"
+    },
+    {
+        "title": "WebGame Challenge",
+        "miniTitle": "website game development",
+        "description": "Calling all web-dev Enthusiasts! Get ready to dive into the world of browser-based game development with WebGame Challenge hosted by GDG development and UI-UX team, in collaboration with CodeIIEST. Whether you're just starting out or looking to sharpen your skills, this competition is your chance to create fun, innovative browser-based games. It's time to show off your coding creativity!",
+        "imageVariant": "development",
+        "AvatarSampleData": [
+            { "name": "Abhijit Karmakar", "img": "abhijitkarmakar.webp" },
+            { "name": "Soumyajit Karmakar", "img": "soumyajitkarmakar.webp" }
+        ],
+        "TagsList": ["Web development", "creativity", "UIUX", "animations", "Design"],
+        "sideDetails1": {
+            "text1": "Deadline",
+            "text2": "10th Nov, 2024",
+            "text3": "11:59 PM"
+        },
+        "sideDetails2": {
+            "text1": "venue",
+            "text2": "Online",
+            "text3": null
+        },
+        "completionStatus": 100,
+        "moreInfo": "https://www.linkedin.com/posts/codeiiest-iiest_calling-all-web-dev-enthusiasts-get-ready-activity-7254556901860913153-u2gL?utm_source=share&utm_medium=member_desktop"
+    },
+    {
+        "title": "Introduction to Git and Github",
+        "miniTitle": "Git and Github session",
+        "description": "A beginner friendly session introducing the powers of git and github for seamless collaboration.",
+        "imageVariant": "development",
+        "AvatarSampleData": [
+            { "name": "Abhijit Karmakar", "img": "abhijitkarmakar.webp" },
+            { "name": "Soumyajit Karmakar", "img": "soumyajitkarmakar.webp" }
+        ],
+        "TagsList": ["git", "github", "Version control", "collaboration"],
+        "sideDetails1": {
+            "text1": "date & time",
+            "text2": "6th Nov, 2024",
+            "text3": "5:00 PM"
+        },
+        "sideDetails2": {
+            "text1": "venue",
+            "text2": "CSD205",
+            "text3": "OFFLINE"
+        },
+        "completionStatus": 100,
+        "moreInfo": "#"
+    },
+    {
+        "title": "Introduction to CP with STL",
+        "miniTitle": "Intro to STL",
+        "description": "Calling all Cp-Dsa Enthusiasts! Let's Begin the Chapter of CP'24 with the introduction to STL!",
+        "imageVariant": "cpdsa",
+        "AvatarSampleData": [
+            { "name": "Hanzala Sharique", "img": "hanzalasharique.webp" },
+            { "name": "Mohak Singh", "img": "mohaksingh.webp" },
+            { "name": "Suraj Kashyap", "img": "surajkashyap.webp" },
+            { "name": "Samyajit Das", "img": "samyajitdas.webp" }
+        ],
+        "TagsList": ["CP", "DSA", "programming"],
+        "sideDetails1": {
+            "text1": "date & time",
+            "text2": "11th Nov, 2024",
+            "text3": "17:00 PM"
+        },
+        "sideDetails2": {
+            "text1": "Venue",
+            "text2": "CSD205",
+            "text3": "OFFLINE"
+        },
+        "completionStatus": 100,
+        "moreInfo": "null"
+    },
+    {
+        "title": "Introduction to ML",
+        "miniTitle": "Introduction to ML",
+        "description": "An immersive bootcamp covering the essentials of data science.",
+        "imageVariant": "aiml",
+        "AvatarSampleData": [
+            { "name": "Angshuman Roy", "img": "angshumanroy.webp" },
+            { "name": "Sarah Jane Topno", "img": "sarahjane.webp" },
+            { "name": "Subhrajit Deb", "img": "subhrajitdeb.webp" }
+        ],
+        "TagsList": ["AI", "ML", "Beginner"],
+        "sideDetails1": {
+            "text1": "date & time",
+            "text2": "8th Nov, 2024",
+            "text3": "5:00 PM"
+        },
+        "sideDetails2": {
+            "text1": "venue",
+            "text2": "CSD205",
+            "text3": "OFFLINE"
+        },
+        "completionStatus": 100,
+        "moreInfo": "#"
+    }
+]
