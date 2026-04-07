@@ -35,35 +35,39 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+        try {
+          await connectDB();
+          const user = await User.findOne({
+            email: (credentials.email as string).toLowerCase(),
+          });
+          if (!user || !user.passwordHash) return null;
 
-        await connectDB();
-        const user = await User.findOne({
-          email: (credentials.email as string).toLowerCase(),
-        });
+          const isValid = await bcrypt.compare(
+            credentials.password as string,
+            user.passwordHash
+          );
+          if (!isValid) return null;
 
-        if (!user || !user.passwordHash) return null;
-
-        const isValid = await bcrypt.compare(
-          credentials.password as string,
-          user.passwordHash
-        );
-        if (!isValid) return null;
-
-        return {
-          id:    user._id.toString(),
-          email: user.email,
-          name:  user.displayName,
-          image: user.image ?? null,
-          role:  user.role,
-        };
+          return {
+            id:    user._id.toString(),
+            email: user.email,
+            name:  user.displayName,
+            image: user.image ?? null,
+            role:  user.role,
+          };
+        } catch (err) {
+          // Log so it appears in Vercel function logs for debugging
+          console.error("[authorize] DB error:", err);
+          return null;
+        }
       },
     }),
   ],
 
   callbacks: {
-    // Inherit the Edge-safe `authorized` callback from authConfig.
-    // Add the Node.js-only callbacks below.
-    ...authConfig.callbacks,
+    // NOTE: do NOT spread authConfig.callbacks here.
+    // The `authorized` callback is for the Edge middleware only.
+    // Including it in the full Node.js config can interfere with sign-in.
 
     async signIn({ user, account, profile }) {
       if (account?.provider === "google") {

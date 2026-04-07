@@ -14,9 +14,9 @@ import { CodeiiestLogo } from "@/components/ui/codeiiest-logo";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail]       = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   async function handleEmailLogin(e: React.FormEvent) {
@@ -28,18 +28,23 @@ export default function LoginPage() {
         password,
         redirect: false,
       });
-      if (res?.error) {
-        toast.error("Invalid email or password.");
+      // res can be undefined in some next-auth beta versions when auth fails silently
+      if (!res || !res.ok || res.error) {
+        toast.error(res?.error === "CredentialsSignin"
+          ? "Invalid email or password."
+          : (res?.error ?? "Login failed. Please try again."));
       } else {
         toast.success("Logged in successfully!");
-        // Use hard redirect so the browser sends the new session cookie
-        // on the very next request — router.push() can race the cookie sync on Vercel
         window.location.href = "/dashboard";
       }
+    } catch (err) {
+      console.error("Sign-in error:", err);
+      toast.error("Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
   }
+
 
 
   async function handleGoogleLogin() {
