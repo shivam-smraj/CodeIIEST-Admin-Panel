@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { connectDB } from "@/lib/db";
 import { User, UserRole } from "@/models/User";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
 
 export async function GET() {
-  const session = await auth();
-  if (!session || session.user?.role !== "superadmin") {
+  const session = await getSession();
+  if (!session || session?.role !== "superadmin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -22,22 +22,22 @@ const updateSchema = z.object({
 });
 
 export async function PUT(req: NextRequest) {
-  const session = await auth();
-  if (!session || session.user?.role !== "superadmin") {
+  const session = await getSession();
+  if (!session || session?.role !== "superadmin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
     const data = updateSchema.parse(await req.json());
     
-    // Prevent self-demotion
-    if (data.userId === session.user?.id && data.role !== "superadmin") {
-      return NextResponse.json({ error: "You cannot demote yourself." }, { status: 400 });
-    }
-
     await connectDB();
     const userToUpdate = await User.findById(data.userId).lean();
     if (!userToUpdate) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+    // Prevent self-demotion
+    if (userToUpdate.email === session?.email && data.role !== "superadmin") {
+      return NextResponse.json({ error: "You cannot demote yourself." }, { status: 400 });
+    }
 
     const oldRole = userToUpdate.role;
     if (oldRole === data.role) {
@@ -50,7 +50,7 @@ export async function PUT(req: NextRequest) {
       { new: true }
     ).select("-passwordHash").lean();
 
-    const actor = await User.findById(session.user?.id).lean();
+    const actor = await User.findOne({ email: session?.email }).lean();
     if (actor) {
       await createAuditLog({
         actor,

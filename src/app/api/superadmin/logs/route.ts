@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { connectDB } from "@/lib/db";
 import { AuditLog } from "@/models/AuditLog";
 
 export async function GET() {
-  const session = await auth();
-  if (!session || session.user?.role !== "superadmin") {
+  const session = await getSession();
+  if (!session || session?.role !== "superadmin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

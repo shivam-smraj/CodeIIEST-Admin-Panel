@@ -3,7 +3,8 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { firebaseAuth } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,15 +123,23 @@ export default function RegisterPage() {
 
       toast.success("Account created! Signing you in...");
       // Auto sign-in after registration
-      const signInRes = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-      if (signInRes?.ok) {
-        router.push("/dashboard");
-        router.refresh();
-      } else {
+      try {
+        const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+        const idToken = await userCredential.user.getIdToken();
+        const sessionRes = await fetch("/api/auth/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken }),
+        });
+
+        if (sessionRes.ok) {
+          router.push("/dashboard");
+          router.refresh();
+        } else {
+          router.push("/login");
+        }
+      } catch (err) {
+        console.error("Auto sign-in failed", err);
         router.push("/login");
       }
     } finally {

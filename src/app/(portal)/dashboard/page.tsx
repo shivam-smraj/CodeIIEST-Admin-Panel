@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { Badge } from "@/components/ui/badge";
@@ -20,11 +20,11 @@ function currentCollegeYear(enrollmentYear?: number): string {
 }
 
 export default async function DashboardPage() {
-  const session = await auth();
+  const session = await getSession();
   if (!session) return null;
 
   await connectDB();
-  const user = await User.findById(session.user.id).lean();
+  const user = await User.findOne({ email: session.email }).lean();
   if (!user) return null;
 
   const roleColors: Record<string, string> = {

@@ -3,7 +3,7 @@
 export const dynamic   = "force-dynamic";
 export const revalidate = 0;
 
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Topbar } from "@/components/layout/Topbar";
@@ -11,19 +11,19 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import type { UserRole } from "@/models/User";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
+  const session = await getSession();
   if (!session) redirect("/login");
 
   return (
     <SidebarProvider>
       <AppSidebar
-        role={session.user?.role as UserRole}
-        name={session.user?.name ?? ""}
-        email={session.user?.email ?? ""}
-        image={session.user?.image ?? undefined}
+        role={session.role as UserRole}
+        name={session.name ?? ""}
+        email={session.email ?? ""}
+        image={session.image ?? undefined}
       />
       <SidebarInset>
-        <Topbar user={session.user} />
+        <Topbar user={session} />
         <main className="flex-1 p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>

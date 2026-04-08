@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { cookies } from "next/headers";
@@ -8,7 +8,7 @@ import jwt from "jsonwebtoken";
 const REDIRECT_BASE = process.env.AUTH_URL ?? "http://localhost:3000";
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
+  const session = await getSession();
   if (!session) return NextResponse.redirect(`${REDIRECT_BASE}/login`);
 
   const searchParams = req.nextUrl.searchParams;
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
 
     // ── 5. Save to user document ─────────────────────────────────────────────
     await connectDB();
-    await User.findByIdAndUpdate(session.user?.id, {
+    await User.findOneAndUpdate({ email: session?.email }, {
       $set: {
         codeforcesId:     cfHandle,
         codeforcesRating: cfRating,

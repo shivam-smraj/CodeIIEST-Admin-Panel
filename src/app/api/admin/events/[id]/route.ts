@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { connectDB } from "@/lib/db";
 import { Event } from "@/models/Event";
 import { User } from "@/models/User";
@@ -15,8 +15,8 @@ type Params = { params: Promise<{ id: string }> };
 // ─── GET /api/admin/events/[id] ───────────────────────────────────────────
 export async function GET(_req: NextRequest, { params }: Params) {
   const { id } = await params;
-  const session = await auth();
-  if (!session || !isAdminOrSuper(session.user.role)) {
+  const session = await getSession();
+  if (!session || !isAdminOrSuper(session.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   await connectDB();
@@ -41,8 +41,8 @@ const updateSchema = z.object({
 // ─── PUT /api/admin/events/[id] ───────────────────────────────────────────
 export async function PUT(req: NextRequest, { params }: Params) {
   const { id } = await params;
-  const session = await auth();
-  if (!session || !isAdminOrSuper(session.user.role)) {
+  const session = await getSession();
+  if (!session || !isAdminOrSuper(session.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   try {
@@ -63,7 +63,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
       }
     }
 
-    const actor = await User.findById(session.user.id).lean();
+    const actor = await User.findOne({ email: session?.email }).lean();
     if (actor && Object.keys(changes).length > 0) {
       await createAuditLog({
         actor, action: "UPDATE_EVENT", targetType: "Event",
@@ -83,15 +83,15 @@ export async function PUT(req: NextRequest, { params }: Params) {
 // ─── DELETE /api/admin/events/[id] ───────────────────────────────────────
 export async function DELETE(req: NextRequest, { params }: Params) {
   const { id } = await params;
-  const session = await auth();
-  if (!session || !isAdminOrSuper(session.user.role)) {
+  const session = await getSession();
+  if (!session || !isAdminOrSuper(session.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   await connectDB();
   const event = await Event.findByIdAndDelete(id).lean();
   if (!event) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const actor = await User.findById(session.user.id).lean();
+  const actor = await User.findOne({ email: session?.email }).lean();
   if (actor) {
     await createAuditLog({
       actor, action: "DELETE_EVENT", targetType: "Event",

@@ -1,43 +1,23 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Lightweight JWT decode — no DB call, works on edge runtime
-  const token = await getToken({
-    req,
-    secret: process.env.AUTH_SECRET,
-    secureCookie: process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production",
-  });
+  // Lightweight check — does the session cookie exist?
+  // Full verification and role-checks happen in layout.tsx via server components.
+  const hasSession = req.cookies.has("__session");
 
-  const role = token?.role as string | undefined;
-
-  // ── Superadmin-only routes ───────────────────────────────────────────────
-  if (pathname.startsWith("/superadmin")) {
-    if (!token || role !== "superadmin") {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    }
-  }
-
-  // ── Admin + Superadmin routes ────────────────────────────────────────────
-  if (pathname.startsWith("/admin")) {
-    if (!token || (role !== "admin" && role !== "superadmin")) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    }
-  }
-
-  // ── Authenticated users only ─────────────────────────────────────────────
-  if (
+  const isProtectedRoute = 
+    pathname.startsWith("/superadmin") ||
+    pathname.startsWith("/admin") ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/profile") ||
     pathname.startsWith("/settings") ||
-    pathname.startsWith("/cf-verify")
-  ) {
-    if (!token) {
-      return NextResponse.redirect(new URL("/login", req.url));
-    }
+    pathname.startsWith("/cf-verify");
+
+  if (isProtectedRoute && !hasSession) {
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
   // ── Redirect logged-in users away from auth pages ────────────────────────
@@ -47,7 +27,7 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password");
 
-  if (isAuthPage && token) {
+  if (isAuthPage && hasSession) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

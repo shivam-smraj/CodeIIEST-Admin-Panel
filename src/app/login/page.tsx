@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signInWithEmailAndPassword, signInWithPopup, signOut } from "firebase/auth";
+import { firebaseAuth, googleProvider } from "@/lib/firebase";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,31 +14,49 @@ import {
 import { Loader2, Globe } from "lucide-react";
 import { CodeiiestLogo } from "@/components/ui/codeiiest-logo";
 
+export function isCollegeEmail(email: string): boolean {
+  return (
+    email.endsWith("@students.iiests.ac.in") ||
+    email.endsWith(".iiests.ac.in")
+  );
+}
+
 export default function LoginPage() {
   const [email,         setEmail]         = useState("");
   const [password,      setPassword]      = useState("");
   const [loading,       setLoading]       = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  // ── Establish Server Session ───────────────────────────────────────────────
+  async function establishServerSession(idToken: string) {
+    const res = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to establish server session.");
+    }
+  }
+
   // ── Email / Password sign-in ──────────────────────────────────────────────
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
+      const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+      const idToken = await userCredential.user.getIdToken();
+      await establishServerSession(idToken);
 
-      if (res?.ok) {
-        toast.success("Logged in successfully!");
-        window.location.href = "/dashboard";
-      } else {
+      toast.success("Logged in successfully!");
+      window.location.href = "/dashboard";
+    } catch (err: any) {
+      if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
         toast.error("Invalid email or password.");
+      } else {
+        toast.error(err.message || "Login failed. Please try again.");
       }
-    } catch (err: unknown) {
-      toast.error("Login failed. Please try again.");
       console.error("[login]", err);
     } finally {
       setLoading(false);
@@ -48,10 +67,26 @@ export default function LoginPage() {
   async function handleGoogleLogin() {
     setGoogleLoading(true);
     try {
-      await signIn("google", { callbackUrl: "/dashboard" });
-    } catch (err: unknown) {
-      toast.error("Google sign-in failed. Please try again.");
-      console.error("[google-login]", err);
+      const userCredential = await signInWithPopup(firebaseAuth, googleProvider);
+      
+      const userEmail = userCredential.user.email;
+      if (!userEmail || !isCollegeEmail(userEmail)) {
+        await signOut(firebaseAuth);
+        toast.error("Only IIEST Shibpur college email addresses are allowed.");
+        setGoogleLoading(false);
+        return;
+      }
+
+      const idToken = await userCredential.user.getIdToken();
+      await establishServerSession(idToken);
+      
+      toast.success("Logged in successfully!");
+      window.location.href = "/dashboard";
+    } catch (err: any) {
+      if (err.code !== "auth/popup-closed-by-user") {
+        toast.error(err.message || "Google sign-in failed. Please try again.");
+        console.error("[google-login]", err);
+      }
       setGoogleLoading(false);
     }
   }

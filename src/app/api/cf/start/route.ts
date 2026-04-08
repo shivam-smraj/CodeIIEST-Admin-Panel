@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { cookies } from "next/headers";
 import crypto from "crypto";
 
 export async function GET() {
-  const session = await auth();
+  const session = await getSession();
   if (!session) return NextResponse.redirect(new URL("/login", process.env.AUTH_URL));
 
   // Generate a random nonce to prevent CSRF/replay attacks

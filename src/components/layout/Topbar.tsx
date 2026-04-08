@@ -1,6 +1,7 @@
 "use client";
 
-import { signOut } from "next-auth/react";
+import { signOut as firebaseSignOut } from "firebase/auth";
+import { firebaseAuth } from "@/lib/firebase";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,11 +12,11 @@ import {
 import { LogOut, User, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { Session } from "next-auth";
+import type { SessionUser } from "@/lib/session";
 import { CodeiiestLogo } from "@/components/ui/codeiiest-logo";
 
 interface TopbarProps {
-  user: Session["user"];
+  user: SessionUser;
 }
 
 /** Maps route prefixes → human-readable page titles */
@@ -86,7 +87,15 @@ export function Topbar({ user }: TopbarProps) {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="gap-2 text-red-400 focus:text-red-400 cursor-pointer"
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={async () => {
+              try {
+                await fetch("/api/auth/logout", { method: "POST" });
+                await firebaseSignOut(firebaseAuth);
+                window.location.href = "/login";
+              } catch (error) {
+                console.error("Logout failed:", error);
+              }
+            }}
           >
             <LogOut className="w-4 h-4" /> Sign Out
           </DropdownMenuItem>
