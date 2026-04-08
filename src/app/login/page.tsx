@@ -39,20 +39,46 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const credential = await signInWithEmailAndPassword(firebaseAuth, email, password);
-      const idToken    = await getIdToken(credential.user, /* forceRefresh */ true);
-      const ok         = await createSession(idToken);
+      let credential;
+      try {
+        credential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+      } catch (firstErr: unknown) {
+        const code = (firstErr as { code?: string })?.code ?? "";
+
+        // User exists in MongoDB but not yet in Firebase → migrate automatically
+        if (code === "auth/user-not-found" || code === "auth/invalid-credential") {
+          const migrateRes = await fetch("/api/auth/migrate-user", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ email, password }),
+          });
+
+          if (!migrateRes.ok) {
+            const { error } = await migrateRes.json();
+            toast.error(error ?? "Invalid email or password.");
+            setLoading(false);
+            return;
+          }
+
+          // Retry sign-in now that Firebase account exists
+          credential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+        } else {
+          throw firstErr; // re-throw so the outer catch handles it
+        }
+      }
+
+      const idToken = await getIdToken(credential.user, /* forceRefresh */ true);
+      const ok      = await createSession(idToken);
 
       if (ok) {
         toast.success("Logged in successfully!");
-        // Hard navigation so server components re-render with the new cookie
         window.location.href = "/dashboard";
       } else {
         toast.error("Session creation failed. Please try again.");
       }
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code ?? "";
-      if (code === "auth/user-not-found" || code === "auth/wrong-password" || code === "auth/invalid-credential") {
+      if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
         toast.error("Invalid email or password.");
       } else if (code === "auth/user-disabled") {
         toast.error("This account has been disabled.");
