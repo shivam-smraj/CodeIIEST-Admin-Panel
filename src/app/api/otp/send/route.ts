@@ -5,7 +5,7 @@ import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { OtpToken } from "@/models/OtpToken";
 import { sendOtpEmail } from "@/lib/email";
-import { isCollegeEmail } from "@/lib/auth";
+import { isCollegeEmail } from "@/lib/utils/college-email";
 
 function generateOtp(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();

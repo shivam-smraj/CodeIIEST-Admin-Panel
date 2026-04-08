@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { connectDB } from "@/lib/db";
 import { Event } from "@/models/Event";
 import { createAuditLog } from "@/lib/audit";
@@ -12,8 +12,8 @@ function isAdminOrSuper(role: string) {
 
 // ─── GET /api/admin/events ─────────────────────────────────────────────────
 export async function GET() {
-  const session = await auth();
-  if (!session || !isAdminOrSuper(session.user.role)) {
+  const session = await getSession();
+  if (!session || !isAdminOrSuper(session.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   await connectDB();
@@ -35,8 +35,8 @@ const eventSchema = z.object({
 
 // ─── POST /api/admin/events ───────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session || !isAdminOrSuper(session.user.role)) {
+  const session = await getSession();
+  if (!session || !isAdminOrSuper(session.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   try {
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     await connectDB();
     const event = await Event.create(data);
 
-    const actor = await User.findById(session.user.id).lean();
+    const actor = await User.findById(session.uid).lean();
     if (actor) {
       await createAuditLog({
         actor, action: "CREATE_EVENT", targetType: "Event",

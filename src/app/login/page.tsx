@@ -1,46 +1,95 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { useFormStatus } from "react-dom";
-import { signIn } from "next-auth/react";
+import { useState } from "react";
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  getIdToken,
+} from "firebase/auth";
+import { firebaseAuth, googleProvider } from "@/lib/firebase";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
+} from "@/components/ui/card";
 import { Loader2, Globe } from "lucide-react";
 import { CodeiiestLogo } from "@/components/ui/codeiiest-logo";
-import { loginAction, type LoginState } from "./actions";
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button
-      type="submit"
-      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/20 transition-all duration-200"
-      disabled={pending}
-    >
-      {pending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-      {pending ? "Signing in..." : "Sign In"}
-    </Button>
-  );
-}
 
 export default function LoginPage() {
-  const [state, action] = useActionState<LoginState, FormData>(loginAction, null);
+  const [email,         setEmail]         = useState("");
+  const [password,      setPassword]      = useState("");
+  const [loading,       setLoading]       = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Show toast on error
-  useEffect(() => {
-    if (state?.error) {
-      toast.error(state.error);
-    }
-  }, [state]);
+  // ── Shared: exchange a fresh Firebase ID token for a server session cookie ──
+  async function createSession(idToken: string): Promise<boolean> {
+    const res = await fetch("/api/auth/session", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ idToken }),
+    });
+    return res.ok;
+  }
 
+  // ── Email / Password sign-in ──────────────────────────────────────────────
+  async function handleEmailLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const credential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+      const idToken    = await getIdToken(credential.user, /* forceRefresh */ true);
+      const ok         = await createSession(idToken);
+
+      if (ok) {
+        toast.success("Logged in successfully!");
+        // Hard navigation so server components re-render with the new cookie
+        window.location.href = "/dashboard";
+      } else {
+        toast.error("Session creation failed. Please try again.");
+      }
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code ?? "";
+      if (code === "auth/user-not-found" || code === "auth/wrong-password" || code === "auth/invalid-credential") {
+        toast.error("Invalid email or password.");
+      } else if (code === "auth/user-disabled") {
+        toast.error("This account has been disabled.");
+      } else if (code === "auth/too-many-requests") {
+        toast.error("Too many attempts. Please wait and try again.");
+      } else {
+        toast.error("Login failed. Please try again.");
+        console.error("[login]", err);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Google sign-in ────────────────────────────────────────────────────────
   async function handleGoogleLogin() {
     setGoogleLoading(true);
-    await signIn("google", { callbackUrl: "/dashboard" });
+    try {
+      const result  = await signInWithPopup(firebaseAuth, googleProvider);
+      const idToken = await getIdToken(result.user, true);
+      const ok      = await createSession(idToken);
+
+      if (ok) {
+        toast.success("Logged in with Google!");
+        window.location.href = "/dashboard";
+      } else {
+        toast.error("Session creation failed. Please try again.");
+      }
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code ?? "";
+      if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request") {
+        toast.error("Google sign-in failed. Please try again.");
+        console.error("[google-login]", err);
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
   }
 
   return (
@@ -67,13 +116,13 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Google Login */}
+            {/* Google */}
             <Button
               type="button"
               variant="outline"
               className="w-full border-border/70 hover:bg-accent/60 gap-2 text-sm font-medium"
               onClick={handleGoogleLogin}
-              disabled={googleLoading}
+              disabled={googleLoading || loading}
             >
               {googleLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4 text-blue-400" />}
               Continue with Google (IIEST)
@@ -88,15 +137,16 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Server Action Form — cookie is set server-side before redirect */}
-            <form action={action} className="space-y-4">
+            {/* Email / Password */}
+            <form onSubmit={handleEmailLogin} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-sm text-muted-foreground">College Email</Label>
                 <Input
                   id="email"
-                  name="email"
                   type="email"
                   placeholder="you@students.iiests.ac.in"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
                   className="bg-background/60 border-border/60 focus:border-indigo-500 focus:ring-indigo-500/20 transition-colors"
@@ -111,20 +161,24 @@ export default function LoginPage() {
                 </div>
                 <Input
                   id="password"
-                  name="password"
                   type="password"
                   placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
                   className="bg-background/60 border-border/60 focus:border-indigo-500 focus:ring-indigo-500/20 transition-colors"
                 />
               </div>
 
-              {state?.error && (
-                <p className="text-sm text-red-400 text-center">{state.error}</p>
-              )}
-
-              <SubmitButton />
+              <Button
+                type="submit"
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/20 transition-all duration-200"
+                disabled={loading || googleLoading}
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                {loading ? "Signing in..." : "Sign In"}
+              </Button>
             </form>
 
             <p className="text-center text-sm text-muted-foreground pt-2">

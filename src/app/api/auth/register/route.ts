@@ -4,7 +4,8 @@ import { z } from "zod";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { OtpToken } from "@/models/OtpToken";
-import { signIn } from "@/lib/auth";
+import { adminAuth } from "@/lib/firebase-admin";
+
 
 const MAX_ATTEMPTS = 5;
 
@@ -84,6 +85,21 @@ export async function POST(req: NextRequest) {
 
     // Delete used OTP
     await OtpToken.findByIdAndDelete(data.tokenId);
+
+    // Create Firebase Auth user so they can sign in with email/password
+    try {
+      await adminAuth.createUser({
+        email:         otpRecord.email,
+        password:      data.password,
+        displayName:   data.displayName,
+        emailVerified: true,
+      });
+    } catch (fbErr: unknown) {
+      // If Firebase user already exists (e.g. re-registration after deletion), ignore
+      if ((fbErr as { code?: string })?.code !== "auth/email-already-exists") {
+        console.error("[register] Firebase user creation failed:", fbErr);
+      }
+    }
 
     return NextResponse.json({ success: true, email: otpRecord.email });
   } catch (err) {
