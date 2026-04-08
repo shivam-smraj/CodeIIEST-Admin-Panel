@@ -7,25 +7,18 @@ import { SESSION_COOKIE_NAME, SESSION_DURATION_SEC } from "@/lib/session";
 
 const EXPIRES_IN_MS = SESSION_DURATION_SEC * 1000;
 
-/**
- * POST /api/auth/session
- * Body: { idToken: string }
- *
- * Verifies the Firebase ID token, ensures the user exists in MongoDB
- * (creating them if needed for Google sign-ins), then sets an
- * HTTP-only session cookie via Firebase Admin's createSessionCookie.
- */
 export async function POST(req: Request) {
   try {
     const { idToken } = (await req.json()) as { idToken: string };
     if (!idToken) return NextResponse.json({ error: "Missing idToken" }, { status: 400 });
 
-    // Verify the ID token is fresh (issued in the last 5 min) to prevent replay
+    // Verify the Firebase ID token
     const decoded = await adminAuth.verifyIdToken(idToken, true);
+    console.log("[session/POST] Token verified for:", decoded.email);
 
     await connectDB();
 
-    // Upsert user in MongoDB so we always have a record
+    // Upsert user in MongoDB
     let dbUser = await User.findOne({ email: decoded.email });
     if (!dbUser) {
       const isSuperAdmin =
@@ -39,36 +32,33 @@ export async function POST(req: Request) {
         googleId:        decoded.firebase?.sign_in_provider === "google.com" ? decoded.uid : undefined,
       });
     } else if (!dbUser.googleId && decoded.firebase?.sign_in_provider === "google.com") {
-      // Link Google UID to existing account
       dbUser.googleId = decoded.uid;
       if (!dbUser.image && decoded.picture) dbUser.image = decoded.picture;
       await dbUser.save();
     }
 
-    // Create long-lived session cookie (7 days)
+    // Create long-lived Firebase session cookie
     const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn: EXPIRES_IN_MS });
+    console.log("[session/POST] Session cookie created, setting cookie...");
 
-    const isProd = process.env.NODE_ENV === "production";
+    // Use cookies() from next/headers — the officially recommended way per Next.js docs
     const cookieStore = await cookies();
     cookieStore.set(SESSION_COOKIE_NAME, sessionCookie, {
       maxAge:   SESSION_DURATION_SEC,
       httpOnly: true,
-      secure:   isProd,
+      secure:   process.env.NODE_ENV === "production",
       path:     "/",
       sameSite: "lax",
     });
 
+    console.log("[session/POST] Cookie set successfully");
     return NextResponse.json({ success: true, role: dbUser.role });
   } catch (err) {
-    console.error("[session/POST]", err);
+    console.error("[session/POST] Error:", err);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 }
 
-/**
- * DELETE /api/auth/session
- * Clears the session cookie (logout).
- */
 export async function DELETE() {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);

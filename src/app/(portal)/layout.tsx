@@ -1,3 +1,8 @@
+// Force server-side evaluation on every request — critical so Vercel never
+// serves a cached version of this layout that skips the auth/cookie check.
+export const dynamic   = "force-dynamic";
+export const revalidate = 0;
+
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/layout/AppSidebar";
