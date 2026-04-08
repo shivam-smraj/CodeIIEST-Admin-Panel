@@ -1,51 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Code2, Loader2, Globe } from "lucide-react";
+import { Loader2, Globe } from "lucide-react";
 import { CodeiiestLogo } from "@/components/ui/codeiiest-logo";
+import { loginAction, type LoginState } from "./actions";
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button
+      type="submit"
+      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/20 transition-all duration-200"
+      disabled={pending}
+    >
+      {pending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+      {pending ? "Signing in..." : "Sign In"}
+    </Button>
+  );
+}
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [state, action] = useActionState<LoginState, FormData>(loginAction, null);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  async function handleEmailLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const res = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-      // res can be undefined in some next-auth beta versions when auth fails silently
-      if (!res || !res.ok || res.error) {
-        toast.error(res?.error === "CredentialsSignin"
-          ? "Invalid email or password."
-          : (res?.error ?? "Login failed. Please try again."));
-      } else {
-        toast.success("Logged in successfully!");
-        window.location.href = "/dashboard";
-      }
-    } catch (err) {
-      console.error("Sign-in error:", err);
-      toast.error("Login failed. Please try again.");
-    } finally {
-      setLoading(false);
+  // Show toast on error
+  useEffect(() => {
+    if (state?.error) {
+      toast.error(state.error);
     }
-  }
-
-
+  }, [state]);
 
   async function handleGoogleLogin() {
     setGoogleLoading(true);
@@ -54,14 +45,12 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
-      {/* Background glow effects */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-3xl" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-violet-600/10 rounded-full blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md px-4 py-12">
-        {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
           <CodeiiestLogo size={40} />
           <div className="flex flex-col">
@@ -86,15 +75,10 @@ export default function LoginPage() {
               onClick={handleGoogleLogin}
               disabled={googleLoading}
             >
-              {googleLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Globe className="w-4 h-4 text-blue-400" />
-              )}
+              {googleLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4 text-blue-400" />}
               Continue with Google (IIEST)
             </Button>
 
-            {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-border/50" />
@@ -104,16 +88,15 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Email/Password Form */}
-            <form onSubmit={handleEmailLogin} className="space-y-4">
+            {/* Server Action Form — cookie is set server-side before redirect */}
+            <form action={action} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-sm text-muted-foreground">College Email</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="you@students.iiests.ac.in"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
                   className="bg-background/60 border-border/60 focus:border-indigo-500 focus:ring-indigo-500/20 transition-colors"
@@ -128,24 +111,20 @@ export default function LoginPage() {
                 </div>
                 <Input
                   id="password"
+                  name="password"
                   type="password"
                   placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
                   className="bg-background/60 border-border/60 focus:border-indigo-500 focus:ring-indigo-500/20 transition-colors"
                 />
               </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/20 transition-all duration-200"
-                disabled={loading}
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Sign In
-              </Button>
+              {state?.error && (
+                <p className="text-sm text-red-400 text-center">{state.error}</p>
+              )}
+
+              <SubmitButton />
             </form>
 
             <p className="text-center text-sm text-muted-foreground pt-2">
