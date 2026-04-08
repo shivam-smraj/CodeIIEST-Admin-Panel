@@ -1,12 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  getIdToken,
-} from "firebase/auth";
-import { firebaseAuth, googleProvider } from "@/lib/firebase";
+import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,70 +19,26 @@ export default function LoginPage() {
   const [loading,       setLoading]       = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // ── Shared: exchange a fresh Firebase ID token for a server session cookie ──
-  async function createSession(idToken: string): Promise<boolean> {
-    const res = await fetch("/api/auth/session", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ idToken }),
-    });
-    return res.ok;
-  }
-
   // ── Email / Password sign-in ──────────────────────────────────────────────
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      let credential;
-      try {
-        credential = await signInWithEmailAndPassword(firebaseAuth, email, password);
-      } catch (firstErr: unknown) {
-        const code = (firstErr as { code?: string })?.code ?? "";
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-        // User exists in MongoDB but not yet in Firebase → migrate automatically
-        if (code === "auth/user-not-found" || code === "auth/invalid-credential") {
-          const migrateRes = await fetch("/api/auth/migrate-user", {
-            method:  "POST",
-            headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify({ email, password }),
-          });
-
-          if (!migrateRes.ok) {
-            const { error } = await migrateRes.json();
-            toast.error(error ?? "Invalid email or password.");
-            setLoading(false);
-            return;
-          }
-
-          // Retry sign-in now that Firebase account exists
-          credential = await signInWithEmailAndPassword(firebaseAuth, email, password);
-        } else {
-          throw firstErr; // re-throw so the outer catch handles it
-        }
-      }
-
-      const idToken = await getIdToken(credential.user, /* forceRefresh */ true);
-      const ok      = await createSession(idToken);
-
-      if (ok) {
+      if (res?.ok) {
         toast.success("Logged in successfully!");
         window.location.href = "/dashboard";
       } else {
-        toast.error("Session creation failed. Please try again.");
+        toast.error("Invalid email or password.");
       }
     } catch (err: unknown) {
-      const code = (err as { code?: string })?.code ?? "";
-      if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
-        toast.error("Invalid email or password.");
-      } else if (code === "auth/user-disabled") {
-        toast.error("This account has been disabled.");
-      } else if (code === "auth/too-many-requests") {
-        toast.error("Too many attempts. Please wait and try again.");
-      } else {
-        toast.error("Login failed. Please try again.");
-        console.error("[login]", err);
-      }
+      toast.error("Login failed. Please try again.");
+      console.error("[login]", err);
     } finally {
       setLoading(false);
     }
@@ -97,23 +48,10 @@ export default function LoginPage() {
   async function handleGoogleLogin() {
     setGoogleLoading(true);
     try {
-      const result  = await signInWithPopup(firebaseAuth, googleProvider);
-      const idToken = await getIdToken(result.user, true);
-      const ok      = await createSession(idToken);
-
-      if (ok) {
-        toast.success("Logged in with Google!");
-        window.location.href = "/dashboard";
-      } else {
-        toast.error("Session creation failed. Please try again.");
-      }
+      await signIn("google", { callbackUrl: "/dashboard" });
     } catch (err: unknown) {
-      const code = (err as { code?: string })?.code ?? "";
-      if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request") {
-        toast.error("Google sign-in failed. Please try again.");
-        console.error("[google-login]", err);
-      }
-    } finally {
+      toast.error("Google sign-in failed. Please try again.");
+      console.error("[google-login]", err);
       setGoogleLoading(false);
     }
   }

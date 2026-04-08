@@ -26,15 +26,16 @@ export async function GET(_req: NextRequest, { params }: Params) {
 }
 
 const updateSchema = z.object({
-  title:            z.string().min(1).max(200).optional(),
-  miniTitle:        z.string().max(100).optional(),
-  description:      z.string().optional(),
-  imageVariant:     z.string().optional(),
-  TagsList:         z.array(z.string()).optional(),
-  completionStatus: z.number().min(0).max(100).optional(),
-  moreInfo:         z.string().optional(),
-  sideDetails1:     z.object({ text1: z.string().optional(), text2: z.string().optional(), text3: z.string().optional() }).optional(),
-  sideDetails2:     z.object({ text1: z.string().optional(), text2: z.string().optional(), text3: z.string().optional() }).optional(),
+  title:            z.string().min(1).max(200).nullish(),
+  miniTitle:        z.string().max(100).nullish(),
+  description:      z.string().nullish(),
+  imageVariant:     z.string().nullish(),
+  TagsList:         z.array(z.string()).nullish(),
+  completionStatus: z.number().min(0).max(100).nullish(),
+  moreInfo:         z.string().nullish(),
+  AvatarSampleData: z.array(z.object({ name: z.string().nullish(), img: z.string().nullish() })).nullish(),
+  sideDetails1:     z.object({ text1: z.string().nullish(), text2: z.string().nullish(), text3: z.string().nullish() }).nullish(),
+  sideDetails2:     z.object({ text1: z.string().nullish(), text2: z.string().nullish(), text3: z.string().nullish() }).nullish(),
 });
 
 // ─── PUT /api/admin/events/[id] ───────────────────────────────────────────
@@ -51,7 +52,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const before = await Event.findById(id).lean();
     if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const updated = await Event.findByIdAndUpdate(id, { $set: data }, { new: true }).lean();
+    const updated = await Event.findByIdAndUpdate(id, { $set: data as any }, { new: true }).lean();
 
     // Build changes diff for audit log
     const changes: Record<string, { from: unknown; to: unknown }> = {};

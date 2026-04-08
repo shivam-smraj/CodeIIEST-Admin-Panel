@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
+import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import { User, UserRole } from "@/models/User";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
 
 export async function GET() {
-  const session = await getSession();
-  if (!session || session.role !== "superadmin") {
+  const session = await auth();
+  if (!session || session.user?.role !== "superadmin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -22,8 +22,8 @@ const updateSchema = z.object({
 });
 
 export async function PUT(req: NextRequest) {
-  const session = await getSession();
-  if (!session || session.role !== "superadmin") {
+  const session = await auth();
+  if (!session || session.user?.role !== "superadmin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -31,7 +31,7 @@ export async function PUT(req: NextRequest) {
     const data = updateSchema.parse(await req.json());
     
     // Prevent self-demotion
-    if (data.userId === session.uid && data.role !== "superadmin") {
+    if (data.userId === session.user?.id && data.role !== "superadmin") {
       return NextResponse.json({ error: "You cannot demote yourself." }, { status: 400 });
     }
 
@@ -50,7 +50,7 @@ export async function PUT(req: NextRequest) {
       { new: true }
     ).select("-passwordHash").lean();
 
-    const actor = await User.findById(session.uid).lean();
+    const actor = await User.findById(session.user?.id).lean();
     if (actor) {
       await createAuditLog({
         actor,

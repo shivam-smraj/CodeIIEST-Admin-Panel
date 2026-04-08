@@ -113,6 +113,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
 
   session: { strategy: "jwt" },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production"
+        ? "__Secure-authjs.session-token"
+        : "authjs.session-token",
+      options: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        domain: process.env.AUTH_DOMAIN || undefined,
+      },
+    },
+  },
 });
 
 export function isCollegeEmail(email: string): boolean {

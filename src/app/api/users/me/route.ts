@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
+import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { z } from "zod";
 
 export async function GET() {
-  const session = await getSession();
+  const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await connectDB();
-  const user = await User.findById(session.uid)
+  const user = await User.findById(session.user?.id)
     .select("-passwordHash")
     .lean();
 
@@ -27,7 +27,7 @@ const updateSchema = z.object({
 });
 
 export async function PUT(req: NextRequest) {
-  const session = await getSession();
+  const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
@@ -36,7 +36,7 @@ export async function PUT(req: NextRequest) {
 
     await connectDB();
     const user = await User.findByIdAndUpdate(
-      session.uid,
+      session.user?.id,
       { $set: data },
       { new: true }
     ).select("-passwordHash").lean();

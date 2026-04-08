@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
+import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import { Event } from "@/models/Event";
 import { createAuditLog } from "@/lib/audit";
@@ -12,8 +12,8 @@ function isAdminOrSuper(role: string) {
 
 // ─── GET /api/admin/events ─────────────────────────────────────────────────
 export async function GET() {
-  const session = await getSession();
-  if (!session || !isAdminOrSuper(session.role)) {
+  const session = await auth();
+  if (!session || !isAdminOrSuper(session.user?.role as string)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   await connectDB();
@@ -25,26 +25,27 @@ const eventSchema = z.object({
   title:            z.string().min(1).max(200),
   miniTitle:        z.string().min(1).max(100),
   description:      z.string().min(1),
-  imageVariant:     z.string().optional(),
-  TagsList:         z.array(z.string()).optional(),
-  completionStatus: z.number().min(0).max(100).optional(),
-  moreInfo:         z.string().optional(),
-  sideDetails1:     z.object({ text1: z.string().optional(), text2: z.string().optional(), text3: z.string().optional() }).optional(),
-  sideDetails2:     z.object({ text1: z.string().optional(), text2: z.string().optional(), text3: z.string().optional() }).optional(),
+  imageVariant:     z.string().nullish(),
+  TagsList:         z.array(z.string()).nullish(),
+  completionStatus: z.number().min(0).max(100).nullish(),
+  moreInfo:         z.string().nullish(),
+  AvatarSampleData: z.array(z.object({ name: z.string().nullish(), img: z.string().nullish() })).nullish(),
+  sideDetails1:     z.object({ text1: z.string().nullish(), text2: z.string().nullish(), text3: z.string().nullish() }).nullish(),
+  sideDetails2:     z.object({ text1: z.string().nullish(), text2: z.string().nullish(), text3: z.string().nullish() }).nullish(),
 });
 
 // ─── POST /api/admin/events ───────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const session = await getSession();
-  if (!session || !isAdminOrSuper(session.role)) {
+  const session = await auth();
+  if (!session || !isAdminOrSuper(session.user?.role as string)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   try {
     const data = eventSchema.parse(await req.json());
     await connectDB();
-    const event = await Event.create(data);
+    const event = await Event.create(data as any);
 
-    const actor = await User.findById(session.uid).lean();
+    const actor = await User.findById(session.user?.id).lean();
     if (actor) {
       await createAuditLog({
         actor, action: "CREATE_EVENT", targetType: "Event",
