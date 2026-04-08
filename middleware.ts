@@ -8,7 +8,10 @@ export async function middleware(req: NextRequest) {
   // Lightweight JWT decode — no DB call, works on edge runtime
   const token = await getToken({
     req,
-    secret: process.env.AUTH_SECRET!,
+    secret: process.env.AUTH_SECRET,
+    salt: process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production" 
+      ? "__Secure-authjs.session-token"
+      : "authjs.session-token"
   });
 
   const role = token?.role as string | undefined;
