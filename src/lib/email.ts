@@ -20,7 +20,7 @@ export async function sendOtpEmail(email: string, otp: string): Promise<void> {
         <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
           <!-- Header -->
           <div style="background-color: #1e1b4b; padding: 30px; text-align: center;">
-            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: 1px;">&lt;CodeIIEST /&gt;</h1>
+            <img src="https://codeiiest.in/logo.png" alt="CodeIIEST Logo" style="height: 50px; margin-bottom: 15px;" />            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: 1px;">&lt;CodeIIEST /&gt;</h1>
             <p style="color: #a5b4fc; margin-top: 8px; font-size: 14px;">Official Coding Club of IIEST Shibpur</p>
           </div>
           
@@ -66,7 +66,7 @@ export async function sendPasswordResetEmail(
         <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
           <!-- Header -->
           <div style="background-color: #1e1b4b; padding: 30px; text-align: center;">
-            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: 1px;">&lt;CodeIIEST /&gt;</h1>
+            <img src="https://codeiiest.in/logo.png" alt="CodeIIEST Logo" style="height: 50px; margin-bottom: 15px;" />            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: 1px;">&lt;CodeIIEST /&gt;</h1>
             <p style="color: #a5b4fc; margin-top: 8px; font-size: 14px;">Official Coding Club of IIEST Shibpur</p>
           </div>
           <div style="padding: 40px 30px;">
@@ -90,3 +90,4 @@ export async function sendPasswordResetEmail(
     throw new Error(error.message || "Failed to send email via SMTP");
   }
 }
+

@@ -13,15 +13,9 @@ import { useEffect, useState } from "react";
  * Shows once per browser session (sessionStorage flag).
  */
 export function SplashScreen() {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    // Only show once per browser session
-    const seen = sessionStorage.getItem("ci_splash_seen");
-    if (seen) return;
-    sessionStorage.setItem("ci_splash_seen", "1");
-    setVisible(true);
-
     // Unmount after animation completes (3s delay + 1s fadeout)
     const t = setTimeout(() => setVisible(false), 4200);
     return () => clearTimeout(t);

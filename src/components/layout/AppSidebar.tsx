@@ -5,15 +5,17 @@ import { usePathname } from "next/navigation";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
   SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";   
 import { Badge } from "@/components/ui/badge";
 import { CodeiiestLogo } from "@/components/ui/codeiiest-logo";
 import {
   LayoutDashboard, User, Code2, Settings, Shield,
-  CalendarDays, Users, ScrollText, ChevronRight,
+  CalendarDays, Users, ScrollText, ChevronRight, LogOut
 } from "lucide-react";
+import { firebaseAuth } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
 import type { UserRole } from "@/models/User";
 
 const userNav = [
@@ -49,15 +51,27 @@ interface AppSidebarProps {
 
 export function AppSidebar({ role, name, email, image }: AppSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  async function handleLogout() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      await firebaseAuth.signOut();
+      router.push("/login");
+    } catch (e) {
+      console.error(e);
+    }
+  }
 
   function NavItem({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string }) {
-    const active = pathname === href || pathname.startsWith(href + "/");
+    const active = pathname === href || pathname.startsWith(href + "/");        
     return (
       <SidebarMenuItem>
-        <SidebarMenuButton isActive={active} className="gap-3" render={<Link href={href} />}>
+        <SidebarMenuButton isActive={active} className="gap-3" render={<Link href={href} />} onClick={() => { if (typeof window !== "undefined" && window.innerWidth < 768) setOpenMobile(false); }}>
           <Icon className="w-4 h-4" />
           <span>{label}</span>
-          {active && <ChevronRight className="w-3 h-3 ml-auto opacity-50" />}
+          {active && <ChevronRight className="w-3 h-3 ml-auto opacity-50" />}   
         </SidebarMenuButton>
       </SidebarMenuItem>
     );
@@ -126,6 +140,17 @@ export function AppSidebar({ role, name, email, image }: AppSidebarProps) {
             {badge.label}
           </Badge>
         </div>
+        <SidebarMenu className="mt-2">
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              className="gap-3 text-red-500 hover:text-red-400 hover:bg-red-500/10" 
+              onClick={handleLogout}
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );

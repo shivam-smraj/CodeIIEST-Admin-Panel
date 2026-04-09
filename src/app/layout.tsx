@@ -9,7 +9,18 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "CodeIIEST Admin Portal",
-  description: "Admin and user portal for CodeIIEST club at IIEST Shibpur",
+  description: "Official unified Admin Portal for managing events, users, and tasks for CodeIIEST, IIEST Shibpur.",
+  icons: {
+    icon: "/globe.svg",
+    apple: "/globe.svg",
+  },
+  openGraph: {
+    title: "CodeIIEST Admin Portal",
+    description: "Official Admin and User portal for the CodeIIEST coding club at IIEST Shibpur.",
+    siteName: "CodeIIEST Portal",
+    locale: "en_IN",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

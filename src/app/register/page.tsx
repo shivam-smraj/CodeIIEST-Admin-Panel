@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CodeiiestLogo } from "@/components/ui/codeiiest-logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Code2, Loader2, CheckCircle2, ArrowLeft } from "lucide-react";
@@ -159,10 +160,10 @@ export default function RegisterPage() {
       <div className="relative w-full max-w-md px-4 py-12">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="p-2 rounded-xl bg-indigo-600/20 border border-indigo-500/30">
-            <Code2 className="w-6 h-6 text-indigo-400" />
+          <CodeiiestLogo size={40} />
+          <div className="flex flex-col">
+            <span className="text-xl font-bold text-white tracking-tight leading-none">CodeIIEST</span>
           </div>
-          <span className="text-xl font-bold text-white tracking-tight">CodeIIEST</span>
           <Badge variant="outline" className="text-xs border-indigo-500/40 text-indigo-400">Admin</Badge>
         </div>
 
@@ -332,3 +333,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+
