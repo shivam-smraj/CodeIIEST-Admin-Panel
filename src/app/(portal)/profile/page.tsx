@@ -95,16 +95,15 @@ export default function ProfilePage() {
             <Field label="Full Name" id="displayName" placeholder="Shivam Kumar"
               value={form.displayName} onChange={v => handleChange("displayName", v)} required />
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Roll Number" id="enrollmentNo" placeholder="2024EEB109"
-                value={form.enrollmentNo} onChange={v => handleChange("enrollmentNo", v)} />
+              <div className="space-y-1.5">
+                <Label htmlFor="enrollmentNo" className="text-sm text-muted-foreground">Roll Number</Label>
+                <Input id="enrollmentNo" value={form.enrollmentNo} disabled className="bg-background/30 border-border/40 text-muted-foreground cursor-not-allowed" />
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="enrollmentYear" className="text-sm text-muted-foreground">
-                  Enrollment Year
+                  Batch Year
                 </Label>
-                <Input id="enrollmentYear" type="number" min={2015} max={new Date().getFullYear()}
-                  placeholder="2023" value={form.enrollmentYear}
-                  onChange={e => handleChange("enrollmentYear", e.target.value)}
-                  className="bg-background/60 border-border/60 focus:border-indigo-500" />
+                <Input id="enrollmentYear" type="text" value={form.enrollmentYear} disabled className="bg-background/30 border-border/40 text-muted-foreground cursor-not-allowed" />
               </div>
             </div>
           </CardContent>

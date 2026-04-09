@@ -1,38 +1,47 @@
+﻿import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
-export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+export default withAuth(
+  function middleware(req) {
+    const { pathname } = req.nextUrl;
+    // Check if the user is authenticated from the token
+    const isAuth = !!req.nextauth.token;
 
-  // Lightweight check — does the session cookie exist?
-  // Full verification and role-checks happen in layout.tsx via server components.
-  const hasSession = req.cookies.has("__session");
+    const isAuthPage =
+      pathname === "/login" ||
+      pathname === "/register" ||
+      pathname.startsWith("/forgot-password") ||
+      pathname.startsWith("/reset-password");
 
-  const isProtectedRoute = 
-    pathname.startsWith("/superadmin") ||
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/profile") ||
-    pathname.startsWith("/settings") ||
-    pathname.startsWith("/cf-verify");
+    // Redirect authenticated users away from auth pages
+    if (isAuthPage && isAuth) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+  },
+  {
+    callbacks: {
+      authorized: ({ req, token }) => {
+        const { pathname } = req.nextUrl;
+        const isProtectedRoute =
+          pathname.startsWith("/superadmin") ||
+          pathname.startsWith("/admin") ||
+          pathname.startsWith("/dashboard") ||
+          pathname.startsWith("/profile") ||
+          pathname.startsWith("/settings") ||
+          pathname.startsWith("/cf-verify");
+        
+        if (isProtectedRoute && !token) {
+          return false;
+        }
 
-  if (isProtectedRoute && !hasSession) {
-    return NextResponse.redirect(new URL("/login", req.url));
+        return true;
+      },
+    },
+    pages: {
+      signIn: "/login",
+    },
   }
-
-  // ── Redirect logged-in users away from auth pages ────────────────────────
-  const isAuthPage =
-    pathname === "/login" ||
-    pathname === "/register" ||
-    pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/reset-password");
-
-  if (isAuthPage && hasSession) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
-  }
-
-  return NextResponse.next();
-}
+);
 
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
