@@ -26,6 +26,10 @@ export const authOptions: NextAuthOptions = {
       const email = user.email?.toLowerCase();
       if (!email) return false;
 
+      if (!email.endsWith("@students.iiests.ac.in") && !email.endsWith(".iiests.ac.in")) {
+        return false; // Reject non-IIEST emails
+      }
+
       try {
         await connectDB();
         let existingUser = await User.findOne({ email });
