@@ -11,8 +11,11 @@ export const metadata: Metadata = {
   title: "CodeIIEST Admin Portal",
   description: "Official unified Admin Portal for managing events, users, and tasks for CodeIIEST, IIEST Shibpur.",
   icons: {
-    icon: "/globe.svg",
-    apple: "/globe.svg",
+    icon: [
+      { url: "/favicon.svg",       type: "image/svg+xml" },
+      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
+    ],
+    apple: { url: "/apple-touch-icon.png", sizes: "180x180" },
   },
   openGraph: {
     title: "CodeIIEST Admin Portal",
