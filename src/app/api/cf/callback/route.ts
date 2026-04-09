@@ -5,7 +5,7 @@ import { User } from "@/models/User";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 
-const REDIRECT_BASE = process.env.AUTH_URL ?? "http://localhost:3000";
+const REDIRECT_BASE = process.env.CF_AUTH_URL ?? "http://localhost:3000";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
