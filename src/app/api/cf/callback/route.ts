@@ -99,6 +99,18 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // ── 6. Redirect — back to GDSC site if that triggered the flow ───────────
+    const cfReturnUrl = cookieStore.get("cf_return_url")?.value;
+    cookieStore.delete("cf_return_url");
+
+    if (cfReturnUrl) {
+      const dest = new URL(cfReturnUrl);
+      dest.searchParams.set("cfverified", "true");
+      dest.searchParams.set("handle", cfHandle);
+      dest.searchParams.set("rating", String(cfRating));
+      return NextResponse.redirect(dest.toString());
+    }
+
     return NextResponse.redirect(`${REDIRECT_BASE}/cf-verify?success=true&handle=${cfHandle}`);
   } catch (err) {
     console.error("[CF callback] Error:", err);
